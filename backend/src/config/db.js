@@ -10,6 +10,7 @@ const dbConfig = {
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "23092007",
   charset: "utf8mb4",
+  ssl: process.env.DB_HOST && process.env.DB_HOST !== "localhost" ? { minVersion: "TLSv1.2", rejectUnauthorized: true } : undefined,
 };
 
 const dbName = process.env.DB_NAME || "ptit_online_exam";
