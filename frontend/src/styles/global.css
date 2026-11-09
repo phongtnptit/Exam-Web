@@ -2713,3 +2713,255 @@ textarea {
     display: flex;
   }
 }
+
+/* ============================================================================
+   10. ULTRA-DYNAMIC HOVER ANIMATIONS, 3D TILT, GLARE SWEEP & CURSOR SPOTLIGHT
+   ============================================================================ */
+
+/* 10.1 Vầng sáng Aurora đi theo con trỏ chuột trên toàn màn hình */
+.cursor-spotlight {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    560px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh),
+    rgba(99, 102, 241, 0.14),
+    rgba(6, 182, 212, 0.08) 35%,
+    transparent 70%
+  );
+  transition: opacity 0.3s ease;
+}
+
+.app-wrapper,
+.auth-layout,
+.exam-room-shell {
+  position: relative;
+  z-index: 2;
+}
+
+/* 10.2 Chuyển động trôi bồng bềnh của các khối cầu Aurora nền Auth Hero */
+@keyframes floatOrbSlow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(35px, 25px) scale(1.08);
+  }
+  66% {
+    transform: translate(-25px, 40px) scale(0.95);
+  }
+}
+
+.auth-hero::before {
+  animation: floatOrbSlow 12s ease-in-out infinite;
+}
+
+.auth-hero::after {
+  animation: floatOrbSlow 15s ease-in-out infinite reverse;
+}
+
+/* 10.3 Chữ Gradient chảy màu liên tục & phát sáng khi di chuột */
+@keyframes gradientShimmerFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.text-gradient {
+  background-size: 200% auto;
+  animation: gradientShimmerFlow 5s ease infinite;
+  transition: filter 0.3s ease;
+}
+
+.auth-hero h1:hover .text-gradient {
+  filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.65));
+}
+
+/* 10.4 Thanh ánh sáng Neon chạy dọc đỉnh Card */
+.auth-card::before,
+.exam-card::before,
+.hero-banner::before,
+.exam-intro-card::before,
+.question-stage-card::before,
+.result-hero-card::before,
+.panel-card::before {
+  background-size: 200% 100%;
+  animation: gradientShimmerFlow 4s linear infinite;
+}
+
+/* 10.5 Hiệu ứng 3D Tilt + Vệt sáng phản quang (Specular Glare Sweep) khi Hover Card */
+.exam-card,
+.stat-box,
+.hero-feature-item,
+.intro-metric-item {
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+}
+
+/* Vầng sáng Spotlight bên trong từng Card bám theo vị trí chuột */
+.exam-card::after,
+.stat-box::after,
+.auth-card::after,
+.hero-feature-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    360px circle at var(--card-x, 50%) var(--card-y, 50%),
+    rgba(56, 189, 248, 0.16),
+    rgba(99, 102, 241, 0.08) 40%,
+    transparent 75%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.exam-card:hover::after,
+.stat-box:hover::after,
+.auth-card:hover::after,
+.hero-feature-item:hover::after {
+  opacity: 1;
+}
+
+.exam-card:hover {
+  transform: perspective(900px) rotateX(var(--rx, 2deg)) rotateY(var(--ry, -2deg)) translateY(-8px) scale(1.018);
+  box-shadow:
+    0 24px 50px -10px rgba(0, 0, 0, 0.78),
+    0 0 36px -4px rgba(56, 189, 248, 0.38),
+    0 0 1px 1px rgba(56, 189, 248, 0.55) inset;
+}
+
+.stat-box:hover {
+  transform: perspective(800px) rotateX(var(--rx, 2deg)) rotateY(var(--ry, -2deg)) translateY(-6px) scale(1.025);
+  box-shadow:
+    0 20px 42px -8px rgba(0, 0, 0, 0.7),
+    0 0 30px -4px rgba(99, 102, 241, 0.35);
+}
+
+/* 10.6 Hiệu ứng Icon nảy lò xo (Spring Pop & Rotate) khi di chuột vào Card */
+.stat-icon,
+.feature-icon,
+.metric-icon,
+.brand-badge,
+.user-avatar {
+  transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+.stat-box:hover .stat-icon,
+.hero-feature-item:hover .feature-icon,
+.intro-metric-item:hover .metric-icon {
+  transform: scale(1.22) rotate(-8deg) translateY(-2px);
+  filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.55));
+}
+
+.brand-logo:hover .brand-badge {
+  transform: scale(1.12) rotate(-6deg);
+  box-shadow: 0 0 28px var(--ptit-red-glow);
+}
+
+.user-profile-pill:hover .user-avatar {
+  transform: scale(1.15) rotate(8deg);
+  box-shadow: 0 0 20px var(--accent-cyan-glow);
+}
+
+/* 10.7 Hiệu ứng Đáp án trắc nghiệm (Option Tile) trượt & nảy ký tự A,B,C,D khi Hover */
+.option-choice-card:hover {
+  transform: translateX(8px) translateY(-2px) scale(1.008);
+  border-color: #38bdf8;
+  box-shadow:
+    -4px 0 0 0 #38bdf8,
+    0 12px 28px -6px rgba(6, 182, 212, 0.28);
+}
+
+.option-choice-card:hover .option-letter {
+  transform: scale(1.16) rotate(-6deg);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0 16px var(--accent-cyan-glow);
+}
+
+.option-choice-card:active {
+  transform: scale(0.985);
+}
+
+/* 10.8 Hiệu ứng Nút bấm đàn hồi (Magnetic Bounce & Arrow Slide) */
+.btn-enter-exam,
+.btn-primary,
+.btn-demo,
+.filter-pill,
+.palette-num-btn,
+.nav-item {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-enter-exam:hover {
+  transform: translateY(-3px) scale(1.05);
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 26px var(--accent-cyan-glow), 0 0 16px var(--primary-glow);
+}
+
+.btn-demo:hover {
+  transform: translateY(-4px) scale(1.03);
+}
+
+.filter-pill:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25);
+}
+
+.palette-num-btn:hover {
+  transform: translateY(-4px) scale(1.12);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35);
+  z-index: 3;
+}
+
+.nav-item:hover {
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* 10.9 Hiệu ứng Radar Pulse cho huy hiệu "Đang mở thi" */
+@keyframes livePulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45), 0 0 14px rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0), 0 0 22px rgba(52, 211, 153, 0.55);
+  }
+}
+
+.status-live {
+  animation: livePulseGlow 2.2s infinite ease-in-out;
+}
+
+/* 10.10 Hiệu ứng xuất hiện mượt mà khi chuyển trang (Page Entrance Reveal) */
+@keyframes pageRevealUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.page-container,
+.auth-card,
+.auth-hero-content,
+.exam-intro-card,
+.question-stage-card,
+.result-hero-card,
+.panel-card {
+  animation: pageRevealUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
