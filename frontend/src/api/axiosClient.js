@@ -1,7 +1,19 @@
 import axios from "axios";
 
+function resolveBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/+$/, "");
+    return cleaned.endsWith("/api") ? cleaned : `${cleaned}/api`;
+  }
+  if (import.meta.env.PROD) {
+    return "https://exam-web-ak0z.onrender.com/api";
+  }
+  return "http://localhost:5000/api";
+}
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: resolveBaseUrl(),
   headers: {
     "Content-Type": "application/json",
   },
