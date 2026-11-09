@@ -42,7 +42,10 @@ export default function LoginPage() {
       await login(demoEmail, demoPass);
       navigate("/");
     } catch (err) {
-      setError("Không thể kết nối tới Backend. Hãy chắc chắn server đang chạy ở cổng 5000.");
+      setError(
+        err.response?.data?.message ||
+          "Không thể kết nối tới Backend. Hãy chắc chắn máy chủ API đang hoạt động."
+      );
     } finally {
       setSubmitting(false);
     }
