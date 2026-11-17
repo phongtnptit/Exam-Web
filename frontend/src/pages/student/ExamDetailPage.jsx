@@ -64,7 +64,6 @@ export default function ExamDetailPage() {
             </p>
           </div>
 
-          {/* THÔNG SỐ KỸ THUẬT CỦA ĐỀ THI */}
           <div className="intro-metrics-grid">
             <div className="intro-metric-item">
               <div className="metric-icon">⏱️</div>
@@ -99,7 +98,6 @@ export default function ExamDetailPage() {
             </div>
           </div>
 
-          {/* QUY CHẾ PHÒNG THI */}
           <div className="exam-rules-box">
             <h3>📌 Quy chế & Hướng dẫn làm bài thi trực tuyến:</h3>
             <ul>

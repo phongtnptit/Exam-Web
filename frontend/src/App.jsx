@@ -10,7 +10,6 @@ export default function App() {
       root.style.setProperty("--mouse-x", `${e.clientX}px`);
       root.style.setProperty("--mouse-y", `${e.clientY}px`);
 
-      // Hiệu ứng Spotlight & 3D Tilt nhẹ khi di chuột lên các thẻ Glass Card
       const card = e.target.closest(
         ".exam-card, .stat-box, .hero-feature-item, .intro-metric-item, .auth-card"
       );
@@ -21,7 +20,6 @@ export default function App() {
         card.style.setProperty("--card-x", `${x}px`);
         card.style.setProperty("--card-y", `${y}px`);
 
-        // Tính góc nghiêng 3D nhẹ (tối đa ±4 độ cho exam-card / stat-box)
         if (!card.classList.contains("auth-card")) {
           const centerX = rect.width / 2;
           const centerY = rect.height / 2;
@@ -40,7 +38,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        {/* Vầng sáng Aurora đi theo con trỏ chuột trên toàn trang */}
+
         <div className="cursor-spotlight" aria-hidden="true" />
         <AppRouter />
       </AuthProvider>

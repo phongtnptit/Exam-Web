@@ -1,19 +1,29 @@
 import { pool } from "../config/db.js";
+import { isId, isNumber } from "../utils/validation.js";
 
-/**
- * POST /api/submissions - Nộp bài thi & Chấm điểm tự động trên Server
- */
 export async function submitExam(req, res, next) {
   try {
     const { examId, answers = {}, timeSpentSeconds = 0 } = req.body;
-    if (!examId) {
+    if (!isId(examId)) {
       return res.status(400).json({
         success: false,
         message: "Thiếu mã đề thi (examId).",
       });
     }
 
-    // Lấy toàn bộ câu hỏi và đáp án đúng của đề thi từ MySQL
+    if (!answers || typeof answers !== "object" || Array.isArray(answers) ||
+        !Object.values(answers).every((answer) => ["A", "B", "C", "D"].includes(answer))) {
+      return res.status(400).json({ success: false, message: "Danh sách đáp án không hợp lệ." });
+    }
+    const [exams] = await pool.query("SELECT id, is_published, duration_minutes FROM exams WHERE id = ?", [Number(examId)]);
+    if (!exams.length) return res.status(404).json({ success: false, message: "Không tìm thấy đề thi." });
+    if (req.user.role === "STUDENT" && !exams[0].is_published) {
+      return res.status(403).json({ success: false, message: "Đề thi này chưa được mở." });
+    }
+    if (!isNumber(timeSpentSeconds) || !Number.isInteger(Number(timeSpentSeconds)) || Number(timeSpentSeconds) < 0 || Number(timeSpentSeconds) > exams[0].duration_minutes * 60) {
+      return res.status(400).json({ success: false, message: "Thời gian làm bài không hợp lệ." });
+    }
+
     const [questions] = await pool.query(
       `
       SELECT q.id, q.correct_answer
@@ -31,6 +41,11 @@ export async function submitExam(req, res, next) {
       });
     }
 
+    const questionIds = new Set(questions.map((q) => String(q.id)));
+    if (Object.keys(answers).some((id) => !questionIds.has(id))) {
+      return res.status(400).json({ success: false, message: "Có đáp án cho câu hỏi không thuộc đề thi." });
+    }
+
     let correctCount = 0;
     const totalQuestions = questions.length;
 
@@ -44,7 +59,7 @@ export async function submitExam(req, res, next) {
     const score = Number(((correctCount / totalQuestions) * 10).toFixed(2));
 
     const [result] = await pool.query(
-      `INSERT INTO submissions 
+      `INSERT INTO submissions
         (exam_id, student_id, score, correct_count, total_questions, time_spent_seconds, answers_json)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -73,14 +88,11 @@ export async function submitExam(req, res, next) {
   }
 }
 
-/**
- * GET /api/submissions/my-history - Lấy lịch sử làm bài của Sinh viên đang đăng nhập
- */
 export async function getMySubmissions(req, res, next) {
   try {
     const [rows] = await pool.query(
       `
-      SELECT 
+      SELECT
         sub.*,
         e.title AS exam_title,
         e.duration_minutes,
@@ -105,16 +117,13 @@ export async function getMySubmissions(req, res, next) {
   }
 }
 
-/**
- * GET /api/submissions/:id - Xem chi tiết 1 bài thi đã nộp kèm đáp án đúng & giải thích
- */
 export async function getSubmissionDetail(req, res, next) {
   try {
     const { id } = req.params;
 
     const [subRows] = await pool.query(
       `
-      SELECT 
+      SELECT
         sub.*,
         e.title AS exam_title,
         e.duration_minutes,
@@ -142,7 +151,6 @@ export async function getSubmissionDetail(req, res, next) {
 
     const submission = subRows[0];
 
-    // Chỉ cho phép chính sinh viên đó hoặc giảng viên xem
     if (req.user.role === "STUDENT" && submission.student_id !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -152,7 +160,7 @@ export async function getSubmissionDetail(req, res, next) {
 
     const [questions] = await pool.query(
       `
-      SELECT 
+      SELECT
         q.id,
         q.content,
         q.option_a,
@@ -197,14 +205,11 @@ export async function getSubmissionDetail(req, res, next) {
   }
 }
 
-/**
- * GET /api/submissions - Lấy toàn bộ kết quả & thống kê cho Giảng viên
- */
 export async function getAllSubmissions(req, res, next) {
   try {
     const { examId } = req.query;
     let sql = `
-      SELECT 
+      SELECT
         sub.*,
         e.title AS exam_title,
         e.pass_score,
@@ -238,9 +243,6 @@ export async function getAllSubmissions(req, res, next) {
   }
 }
 
-/**
- * DELETE /api/submissions/:id - Xóa một lượt kết quả thi (Giảng viên)
- */
 export async function deleteSubmission(req, res, next) {
   try {
     const { id } = req.params;

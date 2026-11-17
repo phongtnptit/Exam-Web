@@ -19,7 +19,6 @@ const axiosClient = axios.create({
   },
 });
 
-// Tự động đính kèm JWT Token từ localStorage vào mọi request
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("ptit_exam_token");
   if (token) {

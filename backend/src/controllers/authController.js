@@ -1,9 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { pool } from "../config/db.js";
+import { isText } from "../utils/validation.js";
 
 function signUserToken(user) {
-  const secret = process.env.JWT_SECRET || "ptit_online_exam_secret_key_2026";
+  const secret = process.env.JWT_SECRET;
   const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
   return jwt.sign(
     {
@@ -18,20 +19,20 @@ function signUserToken(user) {
   );
 }
 
-/**
- * POST /api/auth/register - Đăng ký tài khoản mới
- */
 export async function register(req, res, next) {
   try {
-    const { fullName, email, password, role = "STUDENT", studentCode = "" } = req.body;
+    const { fullName, email, password, studentCode = "" } = req.body;
 
-    if (!fullName || !email || !password) {
+    if (!isText(fullName, 120) || !isText(email, 150) || typeof password !== "string" || typeof studentCode !== "string" || studentCode.trim().length > 30) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng nhập đầy đủ họ tên, email và mật khẩu.",
       });
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ success: false, message: "Email không hợp lệ." });
+    }
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -50,12 +51,9 @@ export async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const validRole = role === "TEACHER" ? "TEACHER" : "STUDENT";
-    const defaultCode =
-      studentCode.trim() ||
-      (validRole === "TEACHER"
-        ? `GV${Math.floor(100 + Math.random() * 900)}`
-        : `B22DCCN${Math.floor(100 + Math.random() * 900)}`);
+
+    const validRole = "STUDENT";
+    const defaultCode = studentCode.trim() || `SV${Date.now()}`;
 
     const [result] = await pool.query(
       `INSERT INTO users (full_name, email, password_hash, role, student_code)
@@ -92,13 +90,10 @@ export async function register(req, res, next) {
   }
 }
 
-/**
- * POST /api/auth/login - Đăng nhập nhận JWT Token
- */
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    if (!isText(email, 150) || typeof password !== "string" || !password) {
       return res.status(400).json({
         success: false,
         message: "Vui lòng nhập đầy đủ email và mật khẩu.",
@@ -145,9 +140,6 @@ export async function login(req, res, next) {
   }
 }
 
-/**
- * GET /api/auth/me - Lấy thông tin người dùng hiện tại từ JWT
- */
 export async function getMe(req, res, next) {
   try {
     const [rows] = await pool.query(

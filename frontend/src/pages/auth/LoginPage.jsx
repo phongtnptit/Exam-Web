@@ -32,7 +32,6 @@ export default function LoginPage() {
     }
   };
 
-  // Đăng nhập mẫu 1 chạm phục vụ demo bảo vệ đồ án
   const handleQuickDemo = async (demoEmail, demoPass) => {
     setEmail(demoEmail);
     setPassword(demoPass);
@@ -53,7 +52,7 @@ export default function LoginPage() {
 
   return (
     <div className="auth-layout">
-      {/* CỘT TRÁI: BANNER GIỚI THIỆU HỆ THỐNG PTIT */}
+
       <div className="auth-hero">
         <div className="auth-hero-overlay" />
         <div className="auth-hero-content">
@@ -95,7 +94,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* CỘT PHẢI: FORM ĐĂNG NHẬP */}
       <div className="auth-form-wrapper">
         <div className="auth-card">
           <div className="auth-card-header">
@@ -136,9 +134,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* HỘP ĐĂNG NHẬP NHANH DEMO BẢO VỆ */}
           <div className="quick-demo-panel">
-            <span className="quick-demo-title">⚡ Đăng nhập nhanh phục vụ Demo Bảo vệ:</span>
+            <span className="quick-demo-title">⚡ Đăng nhập tài khoản mẫu:</span>
             <div className="quick-demo-buttons">
               <button
                 type="button"

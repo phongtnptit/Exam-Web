@@ -1,6 +1,7 @@
 import express from "express";
 import { verifyToken, requireRole } from "../middlewares/authMiddleware.js";
 import { register, login, getMe } from "../controllers/authController.js";
+import { chat } from "../controllers/chatController.js";
 import {
   getSubjects,
   createSubject,
@@ -28,16 +29,12 @@ import {
 
 const router = express.Router();
 
-// ============================================================================
-// 1. AUTHENTICATION ROUTES (TV1)
-// ============================================================================
 router.post("/auth/register", register);
 router.post("/auth/login", login);
 router.get("/auth/me", verifyToken, getMe);
 
-// ============================================================================
-// 2. SUBJECTS & QUESTION BANK ROUTES (TV2)
-// ============================================================================
+router.post("/chat", verifyToken, chat);
+
 router.get("/subjects", verifyToken, getSubjects);
 router.post("/subjects", verifyToken, requireRole("TEACHER"), createSubject);
 router.put("/subjects/:id", verifyToken, requireRole("TEACHER"), updateSubject);
@@ -48,18 +45,12 @@ router.post("/questions", verifyToken, requireRole("TEACHER"), createQuestion);
 router.put("/questions/:id", verifyToken, requireRole("TEACHER"), updateQuestion);
 router.delete("/questions/:id", verifyToken, requireRole("TEACHER"), deleteQuestion);
 
-// ============================================================================
-// 3. EXAMS MANAGEMENT ROUTES (TV3)
-// ============================================================================
 router.get("/exams", verifyToken, getExams);
 router.get("/exams/:id", verifyToken, getExamById);
 router.post("/exams", verifyToken, requireRole("TEACHER"), createExam);
 router.put("/exams/:id", verifyToken, requireRole("TEACHER"), updateExam);
 router.delete("/exams/:id", verifyToken, requireRole("TEACHER"), deleteExam);
 
-// ============================================================================
-// 4. SUBMISSIONS & EXAM ROOM ROUTES (TV4)
-// ============================================================================
 router.post("/submissions", verifyToken, submitExam);
 router.get("/submissions/my-history", verifyToken, getMySubmissions);
 router.get("/submissions/:id", verifyToken, getSubmissionDetail);

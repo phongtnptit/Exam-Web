@@ -17,6 +17,7 @@ export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
   const [mySubmissions, setMySubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -31,7 +32,7 @@ export default function HomePage() {
         setSubjects(subRes.data.data || []);
         setMySubmissions(histRes.data.data || []);
       } catch (err) {
-        console.error("Lỗi tải dữ liệu trang chủ:", err);
+        setError(err.response?.data?.message || "Không thể tải dữ liệu. Vui lòng kiểm tra kết nối và tải lại trang.");
       } finally {
         setLoading(false);
       }
@@ -39,7 +40,6 @@ export default function HomePage() {
     loadDashboardData();
   }, []);
 
-  // Lọc đề thi theo môn học và từ khóa tìm kiếm (từ Zustand store)
   const filteredExams = exams.filter((exam) => {
     const matchSubject =
       !selectedSubjectId || Number(exam.subject_id) === Number(selectedSubjectId);
@@ -67,7 +67,8 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
-      {/* BANNER CHÀO MỪNG HIỆN ĐẠI */}
+      {error && <div className="alert-box alert-error">{error} <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>Thử lại</button></div>}
+
       <section className="hero-banner">
         <div className="hero-banner-text">
           <span className="banner-pill">
@@ -93,7 +94,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 4 THẺ THỐNG KÊ NHANH */}
       <section className="stats-row">
         <div className="stat-box">
           <div className="stat-icon indigo">📚</div>
@@ -130,7 +130,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* THANH CÔNG CỤ TÌM KIẾM & LỌC MÔN HỌC */}
       <section className="filter-bar">
         <div className="search-input-wrap">
           <span className="search-icon">🔍</span>
@@ -174,7 +173,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* DANH SÁCH ĐỀ THI (GRID CARDS) */}
       <section className="exam-list-section">
         <div className="section-header-row">
           <h2>Danh sách đề thi trực tuyến ({filteredExams.length})</h2>
@@ -182,7 +180,7 @@ export default function HomePage() {
 
         {loading ? (
           <div className="loading-box">Đang tải danh sách đề thi...</div>
-        ) : filteredExams.length === 0 ? (
+        ) : error ? null : filteredExams.length === 0 ? (
           <div className="empty-box">
             <div className="empty-emoji">📭</div>
             <h3>Không tìm thấy đề thi phù hợp</h3>

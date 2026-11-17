@@ -16,10 +16,10 @@ export default function MainLayout() {
 
   return (
     <div className="app-wrapper">
-      {/* THANH ĐIỀU HƯỚNG TRÊN CÙNG (GLASSMORPHISM NAVBAR) */}
+
       <header className="top-navbar">
         <div className="navbar-inner container">
-          {/* Logo thương hiệu */}
+
           <NavLink to="/" className="brand-logo" onClick={() => setMobileMenuOpen(false)}>
             <div className="brand-badge">PTIT</div>
             <div className="brand-titles">
@@ -28,7 +28,6 @@ export default function MainLayout() {
             </div>
           </NavLink>
 
-          {/* Nút mở menu trên Mobile */}
           <button
             type="button"
             className="mobile-menu-toggle"
@@ -38,7 +37,6 @@ export default function MainLayout() {
             {mobileMenuOpen ? "✕" : "☰"}
           </button>
 
-          {/* Danh sách link điều hướng */}
           <nav className={`nav-links ${mobileMenuOpen ? "open" : ""}`}>
             <NavLink
               to="/"
@@ -55,6 +53,14 @@ export default function MainLayout() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <span>📊</span> Lịch sử làm bài
+            </NavLink>
+
+            <NavLink
+              to="/chatbot"
+              className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span aria-hidden="true">AI</span> Trợ lý học tập
             </NavLink>
 
             {isTeacher && (
@@ -78,7 +84,6 @@ export default function MainLayout() {
             )}
           </nav>
 
-          {/* Thông tin tài khoản & Đăng xuất */}
           <div className="user-controls">
             <div className="user-profile-pill">
               <div className="user-avatar">
@@ -99,12 +104,10 @@ export default function MainLayout() {
         </div>
       </header>
 
-      {/* VÙNG HIỂN THỊ CÁC MÀN HÌNH CON (<Outlet /> CỦA REACT ROUTER) */}
       <main className="main-content container">
         <Outlet />
       </main>
 
-      {/* CHÂN TRANG (FOOTER) */}
       <footer className="app-footer">
         <div className="container footer-inner">
           <div>

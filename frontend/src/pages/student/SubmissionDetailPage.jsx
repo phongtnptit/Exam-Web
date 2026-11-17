@@ -41,7 +41,7 @@ export default function SubmissionDetailPage() {
   }
 
   const score = Number(detail.score);
-  const passed = score >= Number(detail.pass_score || 5);
+  const passed = score >= Number(detail.pass_score ?? 5);
   const accuracy =
     detail.total_questions > 0
       ? Math.round((detail.correct_count / detail.total_questions) * 100)
@@ -58,7 +58,6 @@ export default function SubmissionDetailPage() {
         </Link>
       </div>
 
-      {/* THẺ TỔNG KẾT ĐIỂM SỐ NỔI BẬT */}
       <section className="result-hero-card">
         <div className="result-score-gauge">
           <div className={`gauge-circle ${passed ? "pass" : "fail"}`}>
@@ -102,7 +101,6 @@ export default function SubmissionDetailPage() {
         </div>
       </section>
 
-      {/* DANH SÁCH ĐỐI CHIẾU TỪNG CÂU HỎI & GIẢI THÍCH */}
       <section className="review-questions-section">
         <h2 className="section-title-heading">
           Chi tiết đáp án & Lời giải ({detail.questions?.length || 0} câu)

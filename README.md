@@ -1,99 +1,123 @@
-# PTIT EXAMPRO — HỆ THỐNG THI TRẮC NGHIỆM TRỰC TUYẾN FULLSTACK
-> **BÀI TẬP LỚN CUỐI KỲ - HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG (PTIT)**  
-> **Đề tài số 10:** Thi trắc nghiệm trực tuyến (Ngân hàng câu hỏi, tạo đề, làm bài có đếm giờ, chấm điểm tự động)  
-> **Đường dẫn dự án:** `D:\My_Project\online-exam-system`
+# PTIT ExamPro — Hướng dẫn cài đặt và sử dụng
 
----
+Ứng dụng thi trắc nghiệm trực tuyến sử dụng React, Express và MySQL. Sinh viên có thể làm bài, xem điểm và lịch sử; giảng viên quản lý môn học, câu hỏi, đề thi và kết quả. Chatbot Gemini hỗ trợ hỏi đáp kiến thức trong mục Trợ lý học tập.
 
-## 1. TỔNG QUAN CÔNG NGHỆ ĐÁP ỨNG 100% YÊU CẦU
+## 1. Chuẩn bị
 
-| Hạng mục | Công nghệ sử dụng | Chi tiết thực hiện trong dự án |
-| :--- | :--- | :--- |
-| **1. Frontend React** | React 18 + Vite + React Router v6 | Thiết kế **9 màn hình** hoàn chỉnh, CSS hiện đại, Responsive trên mọi thiết bị. |
-| **2. Quản lý State** | **AuthContext** + **Zustand** | `AuthContext.jsx` quản lý đăng nhập/JWT; `useExamStore.js` (Zustand) quản lý phòng thi đếm ngược, chọn đáp án, cắm cờ câu hỏi & bộ lọc đề thi. |
-| **3. Backend Express** | Node.js + Express.js | RESTful API chuẩn method (`GET`, `POST`, `PUT`, `DELETE`) & HTTP status (`200`, `201`, `400`, `401`, `403`, `404`, `500`), Middleware xử lý lỗi tập trung (`errorMiddleware.js`). |
-| **4. CSDL MySQL** | **MySQL 8.0** (`mysql2/promise`) | **6 bảng** có khóa ngoại (`FOREIGN KEY ... ON DELETE CASCADE`), quan hệ 1-N và N-N. Tự động tạo DB, bảng và seed dữ liệu mẫu khi khởi động. |
-| **5. Git & README** | Git + `.gitignore` + `.env.example` | Không lộ `.env`, cấu trúc thư mục rõ ràng, tài liệu hướng dẫn chi tiết. |
-| **6. Nâng cao** | `jsonwebtoken` (JWT) + `bcryptjs` | Mã hóa mật khẩu bằng `bcryptjs`, xác thực Bearer Token và phân quyền Role-based (`TEACHER` và `STUDENT`). |
+- Node.js 22 và npm.
+- MySQL 8 đang chạy; tài khoản MySQL có quyền tạo cơ sở dữ liệu và bảng.
+- Kết nối Internet và API key Gemini nếu sử dụng chatbot.
 
----
+## 2. Cấu hình lần đầu
 
-## 2. GIẢI THÍCH CƠ CHẾ HOẠT ĐỘNG CỦA REACT ROUTER (DÙNG KHI BẢO VỆ)
+Mở PowerShell tại thư mục dự án. Chỉ sao chép file mẫu nếu chưa có file `.env`:
 
-Toàn bộ phần định tuyến được thiết kế gói gọn trong 2 file cực kỳ dễ đọc tại `frontend/src/router/`:
-1. [`frontend/src/router/ProtectedRoute.jsx`](./frontend/src/router/ProtectedRoute.jsx)
-2. [`frontend/src/router/AppRouter.jsx`](./frontend/src/router/AppRouter.jsx)
-
-### Sơ đồ phân tầng Router trong `AppRouter.jsx`:
-
-```text
-<Routes>
-  │
-  ├── 1. PUBLIC ROUTES (Ai cũng truy cập được)
-  │     ├── /login              --> LoginPage (Đăng nhập)
-  │     └── /register           --> RegisterPage (Đăng ký)
-  │
-  ├── 2. PROTECTED ROUTES (<ProtectedRoute /> - Bắt buộc đã đăng nhập)
-  │     │
-  │     ├── /exam-room/:id      --> ExamRoomPage (Phòng thi toàn màn hình không có thanh menu)
-  │     │
-  │     └── <MainLayout />      --> Dùng chung Navbar + Footer, render trang con qua <Outlet />
-  │           ├── /             --> HomePage (Danh sách đề thi & Bộ lọc)
-  │           ├── /exams/:id    --> ExamDetailPage (Thông tin & Quy chế trước khi vào thi)
-  │           ├── /my-results   --> MyResultsPage (Lịch sử làm bài cá nhân)
-  │           ├── /results/:id  --> SubmissionDetailPage (Xem chi tiết điểm & Giải thích đáp án)
-  │           │
-  │           └── 3. TEACHER ROUTES (<ProtectedRoute allowedRole="TEACHER" />)
-  │                 ├── /teacher/questions --> QuestionBankPage (CRUD Môn học & Ngân hàng câu hỏi)
-  │                 └── /teacher/exams     --> ExamManagerPage (CRUD Đề thi & Bảng điểm sinh viên)
-  │
-  └── 4. FALLBACK ROUTE
-        └── *                   --> <Navigate to="/" replace /> (Gõ sai URL tự về Trang chủ)
+```powershell
+if (!(Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
+if (!(Test-Path frontend/.env)) { Copy-Item frontend/.env.example frontend/.env }
 ```
 
-### 3 Câu hỏi thầy cô thường hỏi về Router & Cách trả lời ngắn gọn:
-* **Câu hỏi 1: Làm sao chặn người chưa đăng nhập gõ thẳng URL vào trang thi?**  
-  $\rightarrow$ *Trả lời:* Trong `ProtectedRoute.jsx`, hệ thống lấy `user` từ `AuthContext`. Nếu `!user` (chưa đăng nhập), component trả về `<Navigate to="/login" replace />` để đẩy người dùng về trang đăng nhập ngay lập tức.
-* **Câu hỏi 2: Làm sao chặn Sinh viên truy cập vào trang tạo đề của Giảng viên (`/teacher/exams`)?**  
-  $\rightarrow$ *Trả lời:* Nhánh của giảng viên được bọc bởi `<ProtectedRoute allowedRole="TEACHER" />`. Nếu `user.role !== "TEACHER"`, hệ thống tự động chuyển hướng về trang chủ `/`.
-* **Câu hỏi 3: Thẻ `<Outlet />` trong `MainLayout.jsx` có tác dụng gì?**  
-  $\rightarrow$ *Trả lời:* `<Outlet />` là vị trí giữ chỗ (placeholder) của React Router v6. Khi chuyển qua lại giữa các trang con, thanh `Navbar` và `Footer` của `MainLayout` được giữ nguyên không phải render lại, chỉ có nội dung bên trong `<Outlet />` thay đổi.
+Điền cấu hình trong `backend/.env`:
 
----
+```dotenv
+PORT=5000
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=mat_khau_mysql_cua_ban
+DB_NAME=ptit_online_exam
+JWT_SECRET=thay_bang_chuoi_bi_mat_dai_va_kho_doan
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=http://localhost:5173
+GEMINI_API_KEY=api_key_gemini_cua_ban
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
 
-## 3. BẢNG PHÂN CÔNG NHÓM 4 THÀNH VIÊN (THEO CHIỀU DỌC: UI $\rightarrow$ API $\rightarrow$ CSDL)
+Thay mật khẩu MySQL, JWT_SECRET và API key bằng giá trị riêng. Model phải khả dụng với tài khoản Gemini của bạn. Hướng dẫn chatbot nằm trong [docs/CHATBOT.md](docs/CHATBOT.md).
 
-| Thành viên | Chức năng phụ trách | Frontend (React) | Backend (Express API) | Database (MySQL) |
-| :--- | :--- | :--- | :--- | :--- |
-| **TV1 (Nhóm trưởng)** | **Người dùng, Đăng nhập, Phân quyền JWT** | `LoginPage.jsx`, `RegisterPage.jsx`, `AuthContext.jsx`, `ProtectedRoute.jsx` | `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `authMiddleware.js` | Bảng `users` |
-| **TV2** | **Quản lý Môn học & Ngân hàng Câu hỏi (CRUD)** | `QuestionBankPage.jsx` (2 tab: CRUD Câu hỏi & CRUD Môn học, lọc câu hỏi) | `/api/subjects` (GET, POST, PUT, DELETE), `/api/questions` (GET, POST, PUT, DELETE) | Bảng `subjects`, `questions` |
-| **TV3** | **Quản lý Đề thi & Cấu trúc đề (CRUD)** | `ExamManagerPage.jsx` (Tạo/sửa/xóa đề thi, tích chọn câu hỏi vào đề), `ExamDetailPage.jsx` | `/api/exams` (GET, POST, PUT, DELETE), `/api/exams/:id` | Bảng `exams`, `exam_questions` |
-| **TV4** | **Phòng thi đếm giờ, Chấm điểm & Thống kê** | `HomePage.jsx`, `ExamRoomPage.jsx` (Zustand `useExamStore.js`), `MyResultsPage.jsx`, `SubmissionDetailPage.jsx` | `/api/submissions` (POST chấm điểm tự động, GET lịch sử, GET chi tiết, DELETE) | Bảng `submissions` |
+Cấu hình `frontend/.env`:
 
----
+```dotenv
+VITE_API_URL=http://localhost:5000/api
+```
 
-## 4. HƯỚNG DẪN CHẠY DỰ ÁN NHANH
+## 3. Chạy trên localhost
 
-### Cách 1: Chạy tự động bằng 1 cú nháy đúp chuột
-Nháy đúp vào file **`start-project.bat`** trong thư mục `D:\My_Project\online-exam-system`.
+Terminal thứ nhất, từ thư mục dự án:
 
-### Cách 2: Chạy bằng dòng lệnh Terminal
-1. **Khởi động Backend (Cổng 5000):**
-   ```bash
-   cd D:\My_Project\online-exam-system\backend
-   npm install
-   npm run dev
-   ```
-   *(Backend sẽ tự động kết nối MySQL, tạo database `ptit_online_exam`, tạo 6 bảng và nạp sẵn dữ liệu mẫu).*
+```powershell
+cd backend
+npm install
+npm run dev
+```
 
-2. **Khởi động Frontend (Cổng 5173):**
-   ```bash
-   cd D:\My_Project\online-exam-system\frontend
-   npm install
-   npm run dev
-   ```
-   👉 Mở trình duyệt tại: **http://localhost:5173**
+Terminal thứ hai, từ thư mục dự án:
 
-### Tài khoản Demo có sẵn (hoặc bấm nút "Đăng nhập nhanh" trên giao diện):
-* **Giảng viên:** `teacher@ptit.edu.vn` / Mật khẩu: `123456`
-* **Sinh viên:** `student@ptit.edu.vn` / Mật khẩu: `123456`
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Mở [http://localhost:5173](http://localhost:5173). Kiểm tra backend tại [http://localhost:5000/api/health](http://localhost:5000/api/health).
+
+Backend tự tạo cơ sở dữ liệu, bảng và thêm dữ liệu mẫu khi bảng người dùng chưa có tài khoản. Không cần import `backend/database.sql` để chạy lần đầu.
+
+Sau khi cài đặt và cấu hình xong, có thể chạy `start-project.bat` trên Windows để mở hai server. Dùng Ctrl+C trong từng terminal để dừng.
+
+## 4. Tài khoản mẫu và sử dụng
+
+| Vai trò | Email | Mật khẩu |
+| --- | --- | --- |
+| Giảng viên | teacher@ptit.edu.vn | 123456 |
+| Sinh viên | student@ptit.edu.vn | 123456 |
+
+Các tài khoản này được tạo khi khởi tạo dữ liệu mẫu. Nếu đã đổi hoặc xoá tài khoản trong cơ sở dữ liệu thì sử dụng thông tin đăng nhập hiện tại.
+
+- Sinh viên: đăng nhập, chọn đề, làm bài và nộp để xem điểm, đáp án, lịch sử.
+- Giảng viên: tạo môn, thêm câu hỏi, tạo đề và mở đề cho sinh viên; xem kết quả tại trang quản lý.
+- Đăng ký mới chỉ tạo tài khoản sinh viên. Các giảng viên dùng chung ngân hàng câu hỏi và đề thi.
+- Trợ lý học tập: đăng nhập rồi mở mục tương ứng trên thanh điều hướng.
+
+## 5. LƯU Ý
+
+- Giữ MySQL, backend và frontend chạy trong suốt quá trình sử dụng.
+- Khởi động lại server tương ứng sau khi thay đổi `.env`.
+- Không đưa `.env`, mật khẩu thật hoặc API key vào bản nộp/chia sẻ. Bản chạy trên máy này tiếp tục dùng cấu hình hiện có; máy khác cấu hình theo `.env.example`.
+- Không cần nộp `node_modules` hoặc `frontend/dist`; có thể tạo lại bằng `npm install` và `npm run build`.
+- Chatbot cần Internet và API key hợp lệ. Hạn mức phụ thuộc tài khoản dịch vụ. Thiếu key chỉ ảnh hưởng chatbot, các chức năng thi vẫn dùng được.
+- Hội thoại chatbot không lưu vào cơ sở dữ liệu; rời trang hoặc tải lại sẽ mất nội dung.
+- Đề đã có bài nộp không được sửa/xoá; câu hỏi đang thuộc đề không được sửa/xoá. Tạo đề hoặc câu hỏi mới khi cần thay đổi nội dung.
+- Bài đang làm lưu tạm trong phiên trình duyệt và có thể khôi phục khi F5. Đóng tab, xoá dữ liệu trình duyệt hoặc đổi thiết bị sẽ không khôi phục được lượt cũ.
+- Mất mạng thì chưa thể nộp bài; giữ nguyên trang và thử nộp lại khi có kết nối. Không sửa đề trong lúc có người làm bài.
+
+## 6. Xử lý lỗi thường gặp
+
+| Hiện tượng | Cách kiểm tra |
+| --- | --- |
+| Backend không kết nối MySQL | Kiểm tra dịch vụ MySQL, DB_HOST, DB_PORT, tài khoản, mật khẩu và quyền tạo cơ sở dữ liệu. |
+| Backend yêu cầu JWT_SECRET | Điền chuỗi bí mật riêng, không dùng giá trị mẫu. |
+| Giao diện không tải dữ liệu | Kiểm tra backend, VITE_API_URL và FRONTEND_URL; khởi động lại sau khi sửa. |
+| Cổng 5000 hoặc 5173 đang được sử dụng | Dừng bản server cũ trước khi chạy lại; nếu đổi cổng cần sửa cấu hình địa chỉ tương ứng. |
+| Chatbot báo key/model/hạn mức | Kiểm tra GEMINI_API_KEY, GEMINI_MODEL và tài khoản cung cấp API. |
+
+## 7. Kiểm tra dự án
+
+Từ thư mục dự án, chạy kiểm thử backend:
+
+```powershell
+cd backend
+npm test
+```
+
+Kiểm thử backend tạo và xoá cơ sở dữ liệu tạm có tiền tố `ptit_exam_test_`, không dùng dữ liệu ứng dụng. MySQL phải chạy và tài khoản cần quyền tạo/xoá cơ sở dữ liệu. Kiểm thử chatbot giả lập phản hồi, không gọi Gemini bằng key thật.
+
+Trong terminal khác, từ thư mục dự án:
+
+```powershell
+cd frontend
+npm test
+npm run build
+```
+
+Lệnh build tạo thư mục `frontend/dist`. Để sử dụng và kiểm tra trên localhost trong quá trình phát triển, chạy hai server theo mục 3.

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosClient from "../../api/axiosClient";
 import { useExamStore } from "../../store/useExamStore";
+import { useAuth } from "../../context/AuthContext";
 
 function formatClock(seconds) {
   const safe = Math.max(0, seconds);
@@ -13,8 +14,8 @@ function formatClock(seconds) {
 export default function ExamRoomPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Lấy state & actions từ Zustand Store (useExamStore)
   const {
     activeExam,
     questions,
@@ -22,7 +23,6 @@ export default function ExamRoomPage() {
     answers,
     flaggedQuestions,
     remainingSeconds,
-    totalSeconds,
     startExamSession,
     selectAnswer,
     toggleFlagQuestion,
@@ -39,28 +39,32 @@ export default function ExamRoomPage() {
 
   const submitLockRef = useRef(false);
 
-  // 1. Tải đề thi và khởi tạo Zustand store
   useEffect(() => {
+    let cancelled = false;
+    submitLockRef.current = false;
+    setSubmitting(false);
     setLoading(true);
     axiosClient
       .get(`/exams/${id}?mode=take`)
       .then((res) => {
-        startExamSession(res.data.data);
+        if (cancelled) return;
+        if (!res.data.data.questions?.length) throw new Error("Đề thi chưa có câu hỏi.");
+        startExamSession(res.data.data, user.id);
       })
       .catch((err) => {
-        alert(err.response?.data?.message || "Không thể vào phòng thi.");
+        if (cancelled) return;
+        alert(err.response?.data?.message || err.message || "Không thể vào phòng thi.");
         navigate("/");
       })
       .finally(() => {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       });
 
     return () => {
-      resetExamSession();
+      cancelled = true;
     };
-  }, [id, navigate, startExamSession, resetExamSession]);
+  }, [id, user.id, navigate, startExamSession]);
 
-  // 2. Hàm nộp bài thi lên Server
   const handleFinalSubmit = useCallback(
     async (isAuto = false) => {
       if (submitLockRef.current) return;
@@ -69,10 +73,9 @@ export default function ExamRoomPage() {
       setShowConfirmModal(false);
 
       const currentState = useExamStore.getState();
-      const timeSpent = Math.max(
-        1,
-        currentState.totalSeconds - currentState.remainingSeconds
-      );
+      const timeSpent = Math.min(currentState.totalSeconds, Math.max(
+        0, currentState.totalSeconds - Math.ceil((currentState.deadline - Date.now()) / 1000)
+      ));
 
       try {
         const res = await axiosClient.post("/submissions", {
@@ -81,6 +84,7 @@ export default function ExamRoomPage() {
           timeSpentSeconds: timeSpent,
         });
         const submissionId = res.data.data.submissionId;
+        resetExamSession();
         if (isAuto) {
           alert("⏰ Đã hết thời gian làm bài! Hệ thống tự động thu bài của bạn.");
         }
@@ -91,20 +95,18 @@ export default function ExamRoomPage() {
         alert(err.response?.data?.message || "Lỗi khi nộp bài. Vui lòng thử lại.");
       }
     },
-    [id, navigate]
+    [id, navigate, resetExamSession]
   );
 
-  // 3. Bộ đếm ngược thời gian mỗi giây
   useEffect(() => {
     if (loading || !activeExam || questions.length === 0) return;
 
     const interval = setInterval(() => {
+      tickTimer();
       const currentRem = useExamStore.getState().remainingSeconds;
-      if (currentRem <= 1) {
+      if (currentRem <= 0) {
         clearInterval(interval);
         handleFinalSubmit(true);
-      } else {
-        tickTimer();
       }
     }, 1000);
 
@@ -125,7 +127,7 @@ export default function ExamRoomPage() {
   const answeredCount = Object.keys(answers).length;
   const progressPercent = totalQ > 0 ? Math.round((answeredCount / totalQ) * 100) : 0;
   const isFlagged = flaggedQuestions.includes(currentQuestion.id);
-  const isTimeUrgent = remainingSeconds <= 180; // Dưới 3 phút đổi màu đỏ nhấp nháy
+  const isTimeUrgent = remainingSeconds <= 180;
 
   const options = [
     { key: "A", text: currentQuestion.option_a },
@@ -136,7 +138,7 @@ export default function ExamRoomPage() {
 
   return (
     <div className="exam-room-shell">
-      {/* THANH HEADER CỐ ĐỊNH TRÊN CÙNG PHÒNG THI */}
+
       <header className="exam-room-header">
         <div className="exam-room-brand">
           <span className="exam-subject-tag">{activeExam.subject_code}</span>
@@ -148,7 +150,6 @@ export default function ExamRoomPage() {
           </div>
         </div>
 
-        {/* Thanh tiến độ ở giữa */}
         <div className="exam-progress-bar-wrap">
           <div className="exam-progress-track">
             <div
@@ -158,7 +159,6 @@ export default function ExamRoomPage() {
           </div>
         </div>
 
-        {/* Đồng hồ đếm ngược & Nút nộp bài */}
         <div className="exam-room-controls">
           <div className={`countdown-badge ${isTimeUrgent ? "urgent" : ""}`}>
             <span className="clock-icon">⏱️</span>
@@ -176,9 +176,8 @@ export default function ExamRoomPage() {
         </div>
       </header>
 
-      {/* BỐ CỤC 2 CỘT CỦA PHÒNG THI */}
       <div className="exam-room-body container">
-        {/* CỘT TRÁI: NỘI DUNG CÂU HỎI HIỆN TẠI */}
+
         <section className="question-stage-card">
           <div className="question-stage-top">
             <div className="q-index-badge">
@@ -206,7 +205,6 @@ export default function ExamRoomPage() {
             <p>{currentQuestion.content}</p>
           </div>
 
-          {/* 4 PHƯƠNG ÁN TRẮC NGHIỆM A, B, C, D */}
           <div className="options-grid">
             {options.map((opt) => {
               const selected = answers[currentQuestion.id] === opt.key;
@@ -215,6 +213,7 @@ export default function ExamRoomPage() {
                   key={opt.key}
                   type="button"
                   className={`option-choice-card ${selected ? "selected" : ""}`}
+                  disabled={submitting || remainingSeconds <= 0}
                   onClick={() => selectAnswer(currentQuestion.id, opt.key)}
                 >
                   <span className="option-letter">{opt.key}</span>
@@ -227,7 +226,6 @@ export default function ExamRoomPage() {
             })}
           </div>
 
-          {/* NÚT ĐIỀU HƯỚNG CÂU TRƯỚC / CÂU TIẾP */}
           <div className="question-stage-footer">
             <button
               type="button"
@@ -253,7 +251,6 @@ export default function ExamRoomPage() {
           </div>
         </section>
 
-        {/* CỘT PHẢI: BẢNG MA TRẬN CÂU HỎI (QUESTION PALETTE) */}
         <aside className="question-palette-card">
           <h3>Danh sách câu hỏi</h3>
 
@@ -297,6 +294,7 @@ export default function ExamRoomPage() {
           <button
             type="button"
             className="btn-submit-exam btn-full"
+            disabled={submitting}
             onClick={() => setShowConfirmModal(true)}
           >
             📤 Hoàn thành & Nộp bài
@@ -304,7 +302,6 @@ export default function ExamRoomPage() {
         </aside>
       </div>
 
-      {/* MODAL XÁC NHẬN NỘP BÀI */}
       {showConfirmModal && (
         <div className="modal-backdrop">
           <div className="modal-card">

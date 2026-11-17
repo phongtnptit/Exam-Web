@@ -1,29 +1,36 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
-/**
- * useExamStore - Quản lý State Phòng thi & Bộ lọc Đề thi bằng Zustand
- * (Đáp ứng yêu cầu mục 2 của đề bài: "Redux Toolkit hoặc Zustand")
- */
-export const useExamStore = create((set, get) => ({
-  // 1. State bộ lọc tìm kiếm đề thi ở Trang chủ
+export const useExamStore = create(persist((set, get) => ({
+
   selectedSubjectId: "",
   searchQuery: "",
   setSelectedSubjectId: (subjectId) => set({ selectedSubjectId: subjectId }),
   setSearchQuery: (query) => set({ searchQuery: query }),
 
-  // 2. State Phòng thi trực tuyến (Exam Room)
+  ownerId: null,
+  deadline: 0,
   activeExam: null,
   questions: [],
   currentIndex: 0,
-  answers: {}, // { [questionId]: 'A' | 'B' | 'C' | 'D' }
-  flaggedQuestions: [], // Mảng ID các câu hỏi được cắm cờ xem lại
+  answers: {},
+  flaggedQuestions: [],
   remainingSeconds: 0,
   totalSeconds: 0,
 
-  // Khởi tạo phòng thi mới
-  startExamSession: (examData) => {
+  startExamSession: (examData, userId) => {
+    const saved = get();
+
+    if (saved.ownerId === userId && saved.activeExam?.id === examData.id &&
+        saved.totalSeconds === Number(examData.duration_minutes) * 60 &&
+        JSON.stringify(saved.questions) === JSON.stringify(examData.questions)) {
+      set({ activeExam: examData, remainingSeconds: Math.max(0, Math.ceil((saved.deadline - Date.now()) / 1000)) });
+      return;
+    }
     const durationSec = (Number(examData.duration_minutes) || 30) * 60;
     set({
+      ownerId: userId,
+      deadline: Date.now() + durationSec * 1000,
       activeExam: examData,
       questions: examData.questions || [],
       currentIndex: 0,
@@ -34,16 +41,14 @@ export const useExamStore = create((set, get) => ({
     });
   },
 
-  // Chọn đáp án A / B / C / D cho 1 câu hỏi
   selectAnswer: (questionId, optionKey) =>
-    set((state) => ({
+    set((state) => state.deadline <= Date.now() ? {} : ({
       answers: {
         ...state.answers,
         [questionId]: optionKey,
       },
     })),
 
-  // Bật / tắt cờ đánh dấu câu hỏi phân vân
   toggleFlagQuestion: (questionId) =>
     set((state) => {
       const exists = state.flaggedQuestions.includes(questionId);
@@ -54,7 +59,6 @@ export const useExamStore = create((set, get) => ({
       };
     }),
 
-  // Di chuyển tới câu hỏi bất kỳ
   goToQuestion: (index) => {
     const total = get().questions.length;
     if (index >= 0 && index < total) {
@@ -76,15 +80,15 @@ export const useExamStore = create((set, get) => ({
     }
   },
 
-  // Giảm bộ đếm thời gian mỗi giây
   tickTimer: () =>
     set((state) => ({
-      remainingSeconds: Math.max(0, state.remainingSeconds - 1),
+      remainingSeconds: Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000)),
     })),
 
-  // Xóa trạng thái phòng thi sau khi nộp bài
   resetExamSession: () =>
     set({
+      ownerId: null,
+      deadline: 0,
       activeExam: null,
       questions: [],
       currentIndex: 0,
@@ -93,4 +97,17 @@ export const useExamStore = create((set, get) => ({
       remainingSeconds: 0,
       totalSeconds: 0,
     }),
+}), {
+  name: "ptit_exam_session",
+  storage: createJSONStorage(() => sessionStorage),
+  partialize: (state) => ({
+    ownerId: state.ownerId,
+    deadline: state.deadline,
+    activeExam: state.activeExam,
+    questions: state.questions,
+    currentIndex: state.currentIndex,
+    answers: state.answers,
+    flaggedQuestions: state.flaggedQuestions,
+    totalSeconds: state.totalSeconds,
+  }),
 }));

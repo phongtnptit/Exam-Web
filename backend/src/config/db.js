@@ -8,7 +8,7 @@ const dbConfig = {
   host: process.env.DB_HOST || "localhost",
   port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "23092007",
+  password: process.env.DB_PASSWORD ?? "",
   charset: "utf8mb4",
   ssl: process.env.DB_HOST && process.env.DB_HOST !== "localhost" ? { minVersion: "TLSv1.2", rejectUnauthorized: true } : undefined,
 };
@@ -23,18 +23,14 @@ export const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-/**
- * Khởi tạo CSDL, tạo bảng và dữ liệu mẫu tự động khi chạy server lần đầu
- */
 export async function initializeDatabase() {
-  // 1. Tạo Database nếu chưa tồn tại
+
   const tempConn = await mysql.createConnection(dbConfig);
   await tempConn.query(
     `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
   );
   await tempConn.end();
 
-  // 2. Tạo 6 bảng có quan hệ khóa ngoại
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -131,14 +127,12 @@ export async function initializeDatabase() {
     ) ENGINE=InnoDB;
   `);
 
-  // 3. Kiểm tra nếu chưa có dữ liệu thì seed dữ liệu mẫu chuẩn PTIT
   const [userCountRows] = await pool.query("SELECT COUNT(*) AS cnt FROM users");
   if (userCountRows[0].cnt === 0) {
     console.log("🌱 Đang khởi tạo dữ liệu mẫu PTIT vào MySQL...");
     const teacherPass = await bcrypt.hash("123456", 10);
     const studentPass = await bcrypt.hash("123456", 10);
 
-    // Tạo Users
     const [teacherRes] = await pool.query(
       `INSERT INTO users (full_name, email, password_hash, role, student_code)
        VALUES (?, ?, ?, 'TEACHER', 'GV001')`,
@@ -159,7 +153,6 @@ export async function initializeDatabase() {
       ["Lê Thị Hương Giang", "giang.lth@ptit.edu.vn", studentPass]
     );
 
-    // Tạo 4 Môn học
     const subjectsData = [
       [
         "INT1434",
@@ -198,9 +191,8 @@ export async function initializeDatabase() {
 
     const [webId, dbId, netId, dsaId] = subjectIds;
 
-    // Tạo Ngân hàng câu hỏi phong phú
     const questionsData = [
-      // Môn 1: Lập trình Web
+
       [
         webId,
         "Trong React Router v6, component nào được dùng làm vùng giữ chỗ (placeholder) để hiển thị các route con trong Layout?",
@@ -274,7 +266,6 @@ export async function initializeDatabase() {
         teacherId,
       ],
 
-      // Môn 2: Cơ sở dữ liệu (MySQL)
       [
         dbId,
         "Trong MySQL, câu lệnh nào dùng để lấy các bản ghi từ hai bảng khi có sự khớp nhau ở trường khóa ngoại?",
@@ -324,7 +315,6 @@ export async function initializeDatabase() {
         teacherId,
       ],
 
-      // Môn 3: Mạng máy tính
       [
         netId,
         "Giao thức HTTP/HTTPS hoạt động ở tầng nào trong mô hình TCP/IP?",
@@ -362,7 +352,6 @@ export async function initializeDatabase() {
         teacherId,
       ],
 
-      // Môn 4: Cấu trúc dữ liệu & Giải thuật
       [
         dsaId,
         "Độ phức tạp thời gian trung bình của thuật toán Tìm kiếm nhị phân (Binary Search) trên mảng đã sắp xếp có n phần tử là bao nhiêu?",
@@ -392,7 +381,7 @@ export async function initializeDatabase() {
     const insertedQuestionIds = [];
     for (const q of questionsData) {
       const [res] = await pool.query(
-        `INSERT INTO questions 
+        `INSERT INTO questions
           (subject_id, content, option_a, option_b, option_c, option_d, correct_answer, difficulty, explanation, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         q
@@ -400,7 +389,6 @@ export async function initializeDatabase() {
       insertedQuestionIds.push({ id: res.insertId, subjectId: q[0] });
     }
 
-    // Tạo 4 Đề thi mẫu
     const examsData = [
       [
         webId,
@@ -450,7 +438,6 @@ export async function initializeDatabase() {
       examIds.push({ examId: res.insertId, subjectId: ex[0] });
     }
 
-    // Gán câu hỏi vào từng đề thi (Bảng trung gian exam_questions)
     for (const ex of examIds) {
       const matchingQuestions = insertedQuestionIds.filter(
         (q) => q.subjectId === ex.subjectId
@@ -464,11 +451,10 @@ export async function initializeDatabase() {
       }
     }
 
-    // Tạo 1 lượt nộp bài mẫu của sinh viên Trần Minh Quân cho đề Lập trình Web
     const webQuestions = insertedQuestionIds.filter((q) => q.subjectId === webId);
     const sampleAnswers = {};
     webQuestions.forEach((wq, idx) => {
-      // Giả sử đúng 5/6 câu
+
       const correctKeys = ["B", "C", "B", "A", "B", "A"];
       sampleAnswers[wq.id] = correctKeys[idx] || "A";
     });

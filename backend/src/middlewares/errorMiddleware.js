@@ -1,6 +1,3 @@
-/**
- * Middleware xử lý 404 khi gọi vào API không tồn tại
- */
 export function notFoundHandler(req, res, next) {
   res.status(404).json({
     success: false,
@@ -8,15 +5,20 @@ export function notFoundHandler(req, res, next) {
   });
 }
 
-/**
- * Middleware xử lý lỗi tập trung (Global Error Handler - 4 tham số chuẩn Express)
- */
 export function errorHandler(err, req, res, next) {
-  console.error("🔥 [Server Error]:", err);
+  if ((err.statusCode || err.status || 500) >= 500) console.error("🔥 [Server Error]:", err);
 
-  const statusCode = err.statusCode || 500;
-  const message =
-    err.message || "Đã xảy ra lỗi trên máy chủ nội bộ (500 Internal Server Error).";
+  let statusCode = err.statusCode || err.status || 500;
+  let message = err.message;
+  if (err.code === "ER_DUP_ENTRY") {
+    statusCode = 409;
+    message = "Email hoặc mã môn học đã tồn tại.";
+  } else if (["ER_NO_REFERENCED_ROW_2", "ER_ROW_IS_REFERENCED_2"].includes(err.code)) {
+    statusCode = 400;
+    message = "Dữ liệu liên quan không tồn tại hoặc đang được sử dụng.";
+  } else if (statusCode >= 500) {
+    message = "Máy chủ gặp lỗi. Vui lòng thử lại sau.";
+  }
 
   res.status(statusCode).json({
     success: false,

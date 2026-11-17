@@ -12,13 +12,12 @@ const PORT = Number(process.env.PORT) || 5000;
 
 app.use(
   cors({
-    origin: true,
+    origin: (process.env.FRONTEND_URL || "http://localhost:5173").split(",").map((url) => url.trim()),
     credentials: true,
   })
 );
 app.use(express.json());
 
-// Endpoint kiểm tra trạng thái server
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -26,15 +25,16 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Mount toàn bộ REST API dưới tiền tố /api
 app.use("/api", apiRoutes);
 
-// Middleware xử lý 404 và Lỗi tập trung
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 async function startServer() {
   try {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "replace_with_your_jwt_secret") {
+      throw new Error("Hãy đặt JWT_SECRET riêng trong backend/.env trước khi chạy.");
+    }
     await initializeDatabase();
     app.listen(PORT, () => {
       console.log(`🚀 Backend PTIT Online Exam đang chạy tại: http://localhost:${PORT}`);

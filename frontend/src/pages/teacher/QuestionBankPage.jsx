@@ -20,20 +20,18 @@ const emptySubject = {
 };
 
 export default function QuestionBankPage() {
-  const [activeTab, setActiveTab] = useState("QUESTIONS"); // "QUESTIONS" | "SUBJECTS"
+  const [activeTab, setActiveTab] = useState("QUESTIONS");
   const [subjects, setSubjects] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Bộ lọc câu hỏi
   const [filterSubject, setFilterSubject] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
 
-  // Form Câu hỏi (Thêm / Sửa)
   const [qForm, setQForm] = useState(emptyQuestion);
   const [editingQId, setEditingQId] = useState(null);
 
-  // Form Môn học (Thêm / Sửa)
   const [sForm, setSForm] = useState(emptySubject);
   const [editingSId, setEditingSId] = useState(null);
 
@@ -66,12 +64,11 @@ export default function QuestionBankPage() {
     loadAll();
   }, []);
 
-  // ============================================================================
-  // XỬ LÝ CRUD CÂU HỎI
-  // ============================================================================
   const handleSaveQuestion = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setNotice({ type: "", text: "" });
+    setSaving(true);
     try {
       if (editingQId) {
         await axiosClient.put(`/questions/${editingQId}`, qForm);
@@ -91,6 +88,8 @@ export default function QuestionBankPage() {
         type: "error",
         text: err.response?.data?.message || "Không thể lưu câu hỏi.",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -124,12 +123,11 @@ export default function QuestionBankPage() {
     }
   };
 
-  // ============================================================================
-  // XỬ LÝ CRUD MÔN HỌC
-  // ============================================================================
   const handleSaveSubject = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setNotice({ type: "", text: "" });
+    setSaving(true);
     try {
       if (editingSId) {
         await axiosClient.put(`/subjects/${editingSId}`, sForm);
@@ -146,6 +144,8 @@ export default function QuestionBankPage() {
         type: "error",
         text: err.response?.data?.message || "Lỗi lưu môn học.",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -161,7 +161,7 @@ export default function QuestionBankPage() {
   const handleDeleteSubject = async (sub) => {
     if (
       !window.confirm(
-        `Xóa môn học "${sub.name}" sẽ xóa toàn bộ câu hỏi và đề thi thuộc môn này. Tiếp tục?`
+        `Xóa môn học "${sub.name}"? Chỉ xóa được môn chưa có câu hỏi và đề thi.`
       )
     )
       return;
@@ -227,7 +227,7 @@ export default function QuestionBankPage() {
 
       {activeTab === "QUESTIONS" ? (
         <>
-          {/* FORM THÊM / SỬA CÂU HỎI */}
+
           <section className="panel-card">
             <div className="panel-header">
               <h2>
@@ -379,14 +379,13 @@ export default function QuestionBankPage() {
                     Hủy sửa
                   </button>
                 )}
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary" disabled={saving}>
                   {editingQId ? "💾 Lưu cập nhật" : "➕ Thêm vào Ngân hàng câu hỏi"}
                 </button>
               </div>
             </form>
           </section>
 
-          {/* DANH SÁCH NGÂN HÀNG CÂU HỎI */}
           <section className="panel-card">
             <div className="panel-header-flex">
               <h2>Danh sách câu hỏi ({filteredQuestions.length})</h2>
@@ -474,7 +473,7 @@ export default function QuestionBankPage() {
           </section>
         </>
       ) : (
-        /* TAB QUẢN LÝ MÔN HỌC */
+
         <>
           <section className="panel-card">
             <div className="panel-header">
@@ -536,7 +535,7 @@ export default function QuestionBankPage() {
                     Hủy
                   </button>
                 )}
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary" disabled={saving}>
                   {editingSId ? "💾 Lưu cập nhật" : "➕ Tạo môn học"}
                 </button>
               </div>

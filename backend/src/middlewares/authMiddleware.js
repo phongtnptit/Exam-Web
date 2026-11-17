@@ -1,8 +1,5 @@
 import jwt from "jsonwebtoken";
 
-/**
- * Middleware 1: Xác thực JWT Token từ Header Authorization: Bearer <token>
- */
 export function verifyToken(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
@@ -14,10 +11,10 @@ export function verifyToken(req, res, next) {
     }
 
     const token = authHeader.split(" ")[1];
-    const secret = process.env.JWT_SECRET || "ptit_online_exam_secret_key_2026";
+    const secret = process.env.JWT_SECRET;
     const decoded = jwt.verify(token, secret);
 
-    req.user = decoded; // { id, email, fullName, role, studentCode }
+    req.user = decoded;
     next();
   } catch (error) {
     return res.status(401).json({
@@ -27,10 +24,6 @@ export function verifyToken(req, res, next) {
   }
 }
 
-/**
- * Middleware 2: Kiểm tra phân quyền theo vai trò (Role-Based Access Control)
- * Ví dụ: requireRole("TEACHER")
- */
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {

@@ -11,7 +11,6 @@ export default function RegisterPage() {
     email: "",
     password: "",
     studentCode: "",
-    role: "STUDENT",
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -49,7 +48,7 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-layout">
-      {/* CỘT TRÁI: BANNER */}
+
       <div className="auth-hero">
         <div className="auth-hero-overlay" />
         <div className="auth-hero-content">
@@ -62,18 +61,17 @@ export default function RegisterPage() {
           </h1>
           <p className="hero-desc">
             Tạo tài khoản miễn phí để tham gia các kỳ thi trắc nghiệm trực tuyến
-            hoặc biên soạn ngân hàng đề thi cho lớp học phần.
+            và theo dõi kết quả học tập của bạn.
           </p>
         </div>
       </div>
 
-      {/* CỘT PHẢI: FORM ĐĂNG KÝ */}
       <div className="auth-form-wrapper">
         <div className="auth-card">
           <div className="auth-card-header">
             <span className="section-badge">THÀNH VIÊN MỚI</span>
             <h2>Đăng ký tài khoản</h2>
-            <p>Điền đầy đủ thông tin cá nhân bên dưới</p>
+            <p>Đăng ký tài khoản sinh viên. Tài khoản giảng viên được cấp riêng.</p>
           </div>
 
           {error && <div className="alert-box alert-error">⚠️ {error}</div>}
@@ -94,7 +92,7 @@ export default function RegisterPage() {
 
             <div className="form-row-2">
               <div className="form-field">
-                <label htmlFor="studentCode">Mã SV / Mã GV</label>
+                <label htmlFor="studentCode">Mã sinh viên</label>
                 <input
                   id="studentCode"
                   name="studentCode"
@@ -105,18 +103,6 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="form-field">
-                <label htmlFor="role">Vai trò *</label>
-                <select
-                  id="role"
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                >
-                  <option value="STUDENT">🎓 Sinh viên</option>
-                  <option value="TEACHER">👨‍🏫 Giảng viên</option>
-                </select>
-              </div>
             </div>
 
             <div className="form-field">

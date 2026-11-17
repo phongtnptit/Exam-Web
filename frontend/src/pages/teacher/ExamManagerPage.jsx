@@ -13,7 +13,7 @@ const emptyExam = {
 };
 
 export default function ExamManagerPage() {
-  const [activeTab, setActiveTab] = useState("EXAMS"); // "EXAMS" | "RESULTS"
+  const [activeTab, setActiveTab] = useState("EXAMS");
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -23,6 +23,7 @@ export default function ExamManagerPage() {
   const [editingId, setEditingId] = useState(null);
   const [notice, setNotice] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -56,7 +57,6 @@ export default function ExamManagerPage() {
     loadData();
   }, []);
 
-  // Lọc câu hỏi trong ngân hàng khớp với môn học đang chọn
   const availableQuestions = questions.filter(
     (q) => Number(q.subject_id) === Number(form.subjectId)
   );
@@ -80,6 +80,7 @@ export default function ExamManagerPage() {
 
   const handleSaveExam = async (e) => {
     e.preventDefault();
+    if (saving) return;
     setNotice({ type: "", text: "" });
 
     if (form.questionIds.length === 0) {
@@ -90,6 +91,7 @@ export default function ExamManagerPage() {
       return;
     }
 
+    setSaving(true);
     try {
       if (editingId) {
         await axiosClient.put(`/exams/${editingId}`, form);
@@ -106,6 +108,8 @@ export default function ExamManagerPage() {
         type: "error",
         text: err.response?.data?.message || "Không thể lưu đề thi.",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -126,7 +130,7 @@ export default function ExamManagerPage() {
       setActiveTab("EXAMS");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      alert("Không thể tải chi tiết đề thi để chỉnh sửa.");
+      alert(err.response?.data?.message || "Không thể tải chi tiết đề thi để chỉnh sửa.");
     }
   };
 
@@ -197,7 +201,7 @@ export default function ExamManagerPage() {
 
       {activeTab === "EXAMS" ? (
         <>
-          {/* FORM TẠO / CẬP NHẬT ĐỀ THI */}
+
           <section className="panel-card">
             <div className="panel-header">
               <h2>
@@ -268,7 +272,7 @@ export default function ExamManagerPage() {
                   <input
                     type="number"
                     step="0.5"
-                    min={1}
+                    min={0}
                     max={10}
                     value={form.passScore}
                     onChange={(e) =>
@@ -309,7 +313,6 @@ export default function ExamManagerPage() {
                 />
               </div>
 
-              {/* CHỌN CÂU HỎI TỪ NGÂN HÀNG ĐƯA VÀO ĐỀ */}
               <div className="question-picker-box">
                 <div className="picker-header">
                   <strong>
@@ -373,14 +376,13 @@ export default function ExamManagerPage() {
                     Hủy chỉnh sửa
                   </button>
                 )}
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary" disabled={saving}>
                   {editingId ? "💾 Lưu cập nhật Đề thi" : "➕ Xuất bản Đề thi mới"}
                 </button>
               </div>
             </form>
           </section>
 
-          {/* BẢNG DANH SÁCH ĐỀ THI */}
           <section className="panel-card">
             <div className="panel-header">
               <h2>Danh sách Đề thi trong hệ thống ({exams.length})</h2>
@@ -451,7 +453,7 @@ export default function ExamManagerPage() {
           </section>
         </>
       ) : (
-        /* TAB BẢNG ĐIỂM & THỐNG KÊ SINH VIÊN */
+
         <section className="panel-card">
           <div className="panel-header">
             <h2>Bảng điểm toàn bộ lượt thi của Sinh viên ({submissions.length})</h2>

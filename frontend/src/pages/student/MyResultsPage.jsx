@@ -11,6 +11,7 @@ function formatDuration(sec) {
 export default function MyResultsPage() {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     axiosClient
@@ -19,7 +20,7 @@ export default function MyResultsPage() {
         setSubmissions(res.data.data || []);
       })
       .catch((err) => {
-        console.error("Lỗi tải lịch sử thi:", err);
+        setError(err.response?.data?.message || "Không thể tải lịch sử. Vui lòng kiểm tra kết nối và tải lại trang.");
       })
       .finally(() => {
         setLoading(false);
@@ -28,7 +29,7 @@ export default function MyResultsPage() {
 
   const totalTaken = submissions.length;
   const passedCount = submissions.filter(
-    (s) => Number(s.score) >= Number(s.pass_score || 5)
+    (s) => Number(s.score) >= Number(s.pass_score ?? 5)
   ).length;
   const avgScore =
     totalTaken > 0
@@ -40,6 +41,7 @@ export default function MyResultsPage() {
 
   return (
     <div className="page-container">
+      {error && <div className="alert-box alert-error">{error} <button type="button" className="btn-secondary" onClick={() => window.location.reload()}>Thử lại</button></div>}
       <div className="page-header-block">
         <div>
           <span className="section-badge">KẾT QUẢ HỌC TẬP CÁ NHÂN</span>
@@ -51,7 +53,6 @@ export default function MyResultsPage() {
         </Link>
       </div>
 
-      {/* THỐNG KÊ TỔNG QUAN CÁ NHÂN */}
       <div className="stats-row">
         <div className="stat-box">
           <div className="stat-icon indigo">📝</div>
@@ -78,7 +79,6 @@ export default function MyResultsPage() {
         </div>
       </div>
 
-      {/* BẢNG LỊCH SỬ NỘP BÀI */}
       <div className="panel-card">
         <div className="panel-header">
           <h2>Danh sách các bài thi đã hoàn thành</h2>
@@ -86,7 +86,7 @@ export default function MyResultsPage() {
 
         {loading ? (
           <div className="loading-box">Đang tải lịch sử bài thi...</div>
-        ) : submissions.length === 0 ? (
+        ) : error ? null : submissions.length === 0 ? (
           <div className="empty-box">
             <div className="empty-emoji">📄</div>
             <h3>Bạn chưa nộp bài thi nào</h3>
@@ -110,7 +110,7 @@ export default function MyResultsPage() {
               <tbody>
                 {submissions.map((item) => {
                   const score = Number(item.score);
-                  const passed = score >= Number(item.pass_score || 5);
+                  const passed = score >= Number(item.pass_score ?? 5);
                   return (
                     <tr key={item.id}>
                       <td>

@@ -1,12 +1,10 @@
 import { pool } from "../config/db.js";
+import { isText, validateQuestion } from "../utils/validation.js";
 
-/**
- * GET /api/subjects - Lấy danh sách môn học kèm số lượng câu hỏi & đề thi
- */
 export async function getSubjects(req, res, next) {
   try {
     const [rows] = await pool.query(`
-      SELECT 
+      SELECT
         s.*,
         (SELECT COUNT(*) FROM questions q WHERE q.subject_id = s.id) AS question_count,
         (SELECT COUNT(*) FROM exams e WHERE e.subject_id = s.id) AS exam_count
@@ -23,13 +21,10 @@ export async function getSubjects(req, res, next) {
   }
 }
 
-/**
- * POST /api/subjects - Thêm môn học mới (Giảng viên)
- */
 export async function createSubject(req, res, next) {
   try {
     const { code, name, description } = req.body;
-    if (!code || !name) {
+    if (!isText(code, 30) || !isText(name, 150) || typeof (description ?? "") !== "string") {
       return res.status(400).json({
         success: false,
         message: "Mã môn học và tên môn học không được để trống.",
@@ -67,20 +62,21 @@ export async function createSubject(req, res, next) {
   }
 }
 
-/**
- * PUT /api/subjects/:id - Cập nhật môn học (Giảng viên)
- */
 export async function updateSubject(req, res, next) {
   try {
     const { id } = req.params;
     const { code, name, description } = req.body;
-    if (!code || !name) {
+    if (!isText(code, 30) || !isText(name, 150) || typeof (description ?? "") !== "string") {
       return res.status(400).json({
         success: false,
         message: "Mã môn học và tên môn học không được để trống.",
       });
     }
 
+    const [used] = await pool.query(
+      "SELECT sub.id FROM submissions sub JOIN exams e ON sub.exam_id = e.id WHERE e.subject_id = ? LIMIT 1", [id]
+    );
+    if (used.length) return res.status(409).json({ success: false, message: "Môn học đã có kết quả thi nên không thể sửa." });
     const [result] = await pool.query(
       `UPDATE subjects SET code = ?, name = ?, description = ? WHERE id = ?`,
       [code.trim().toUpperCase(), name.trim(), description || "", id]
@@ -102,12 +98,15 @@ export async function updateSubject(req, res, next) {
   }
 }
 
-/**
- * DELETE /api/subjects/:id - Xóa môn học (Giảng viên)
- */
 export async function deleteSubject(req, res, next) {
   try {
     const { id } = req.params;
+    const [children] = await pool.query(
+      "SELECT (SELECT COUNT(*) FROM questions WHERE subject_id = ?) + (SELECT COUNT(*) FROM exams WHERE subject_id = ?) AS total", [id, id]
+    );
+    if (Number(children[0].total) > 0) {
+      return res.status(409).json({ success: false, message: "Chỉ xóa được môn học chưa có câu hỏi và đề thi." });
+    }
     const [result] = await pool.query("DELETE FROM subjects WHERE id = ?", [id]);
 
     if (result.affectedRows === 0) {
@@ -126,9 +125,6 @@ export async function deleteSubject(req, res, next) {
   }
 }
 
-/**
- * GET /api/questions - Lấy danh sách ngân hàng câu hỏi (lọc theo subjectId, difficulty, search)
- */
 export async function getQuestions(req, res, next) {
   try {
     const { subjectId, difficulty, search } = req.query;
@@ -165,9 +161,6 @@ export async function getQuestions(req, res, next) {
   }
 }
 
-/**
- * POST /api/questions - Thêm câu hỏi mới vào ngân hàng (Giảng viên)
- */
 export async function createQuestion(req, res, next) {
   try {
     const {
@@ -182,15 +175,13 @@ export async function createQuestion(req, res, next) {
       explanation = "",
     } = req.body;
 
-    if (!subjectId || !content || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng nhập đầy đủ môn học, nội dung câu hỏi, 4 phương án A/B/C/D và đáp án đúng.",
-      });
-    }
+    const message = validateQuestion(req.body);
+    if (message) return res.status(400).json({ success: false, message });
+    const [subjects] = await pool.query("SELECT id FROM subjects WHERE id = ?", [Number(subjectId)]);
+    if (!subjects.length) return res.status(400).json({ success: false, message: "Môn học không tồn tại." });
 
     const [result] = await pool.query(
-      `INSERT INTO questions 
+      `INSERT INTO questions
         (subject_id, content, option_a, option_b, option_c, option_d, correct_answer, difficulty, explanation, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -217,12 +208,13 @@ export async function createQuestion(req, res, next) {
   }
 }
 
-/**
- * PUT /api/questions/:id - Cập nhật câu hỏi (Giảng viên)
- */
 export async function updateQuestion(req, res, next) {
   try {
     const { id } = req.params;
+    const [linked] = await pool.query("SELECT id FROM exam_questions WHERE question_id = ? LIMIT 1", [id]);
+    if (linked.length) {
+      return res.status(409).json({ success: false, message: "Câu hỏi đang thuộc đề thi nên không thể sửa/xóa. Hãy tạo câu hỏi mới hoặc gỡ khỏi đề chưa có bài nộp." });
+    }
     const {
       subjectId,
       content,
@@ -235,12 +227,10 @@ export async function updateQuestion(req, res, next) {
       explanation = "",
     } = req.body;
 
-    if (!subjectId || !content || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
-      return res.status(400).json({
-        success: false,
-        message: "Vui lòng nhập đầy đủ thông tin câu hỏi và 4 phương án.",
-      });
-    }
+    const message = validateQuestion(req.body);
+    if (message) return res.status(400).json({ success: false, message });
+    const [subjects] = await pool.query("SELECT id FROM subjects WHERE id = ?", [Number(subjectId)]);
+    if (!subjects.length) return res.status(400).json({ success: false, message: "Môn học không tồn tại." });
 
     const [result] = await pool.query(
       `UPDATE questions
@@ -277,12 +267,13 @@ export async function updateQuestion(req, res, next) {
   }
 }
 
-/**
- * DELETE /api/questions/:id - Xóa câu hỏi khỏi ngân hàng (Giảng viên)
- */
 export async function deleteQuestion(req, res, next) {
   try {
     const { id } = req.params;
+    const [linked] = await pool.query("SELECT id FROM exam_questions WHERE question_id = ? LIMIT 1", [id]);
+    if (linked.length) {
+      return res.status(409).json({ success: false, message: "Câu hỏi đang thuộc đề thi nên không thể sửa/xóa. Hãy tạo câu hỏi mới hoặc gỡ khỏi đề chưa có bài nộp." });
+    }
     const [result] = await pool.query("DELETE FROM questions WHERE id = ?", [id]);
 
     if (result.affectedRows === 0) {
