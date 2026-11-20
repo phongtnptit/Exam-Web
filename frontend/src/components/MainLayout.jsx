@@ -90,17 +90,16 @@ export default function MainLayout() {
                 {user?.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
               </div>
               <div className="user-meta">
-                <span className="user-fullname">{user?.fullName}</span>
                 <span className={`role-tag ${isTeacher ? "teacher" : "student"}`}>
                   {isTeacher ? "Giảng viên" : `SV • ${user?.studentCode || "PTIT"}`}
                 </span>
               </div>
             </div>
-
-            <button type="button" className="btn-logout" onClick={handleLogout}>
-              Đăng xuất
-            </button>
           </div>
+
+          <button type="button" className="btn-logout" onClick={handleLogout}>
+            Đăng xuất
+          </button>
         </div>
       </header>
 

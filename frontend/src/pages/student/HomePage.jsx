@@ -74,7 +74,7 @@ export default function HomePage() {
           <span className="banner-pill">
             ✨ HỌC KỲ I NĂM HỌC 2026 - 2027 • PTIT EXAMPRO
           </span>
-          <h1>Xin chào, {user?.fullName}! 👋</h1>
+          <h1>Xin chào! 👋</h1>
           <p>
             Chào mừng bạn đến với cổng thi trắc nghiệm trực tuyến. Hãy lựa chọn học
             phần bên dưới để bắt đầu làm bài kiểm tra định kỳ hoặc luyện tập củng cố
@@ -219,9 +219,6 @@ export default function HomePage() {
                 </div>
 
                 <div className="exam-card-footer">
-                  <span className="teacher-credit">
-                    👨‍🏫 {exam.teacher_name || "Khoa CNTT1 - PTIT"}
-                  </span>
                   <Link to={`/exams/${exam.id}`} className="btn-enter-exam">
                     Chi tiết & Vào thi →
                   </Link>
