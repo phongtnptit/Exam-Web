@@ -187,6 +187,7 @@ textarea {
 .navbar-inner {
   height: 76px;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 20px;

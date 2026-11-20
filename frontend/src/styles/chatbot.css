@@ -32,7 +32,6 @@
 .chat-page :is(button, textarea, [tabindex]):focus-visible { outline: 2px solid var(--primary-hover); outline-offset: 4px; }
 .chat-page button:disabled { cursor: not-allowed; opacity: .55; }
 
-@media (min-width: 961px) { .navbar-inner { height: auto; min-height: 76px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; } .nav-links { flex-wrap: wrap; } }
 @media (max-width: 600px) {
   .chat-panel-header, .chat-conversation, .chat-composer { padding: 16px; }
   .chat-suggestions { grid-template-columns: 1fr; }
