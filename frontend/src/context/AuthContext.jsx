@@ -37,12 +37,25 @@ export function AuthProvider({ children }) {
     return loggedUser;
   };
 
+  // Dang ky chi tao tai khoan chua xac minh, KHONG tu dang nhap: tra ve
+  // { email, needsVerification, emailSent } de RegisterPage chuyen sang
+  // trang nhap ma 6 so.
   const register = async (payload) => {
     const res = await axiosClient.post("/auth/register", payload);
-    const { token, user: newUser } = res.data.data;
+    return res.data.data;
+  };
+
+  const verifyEmail = async (email, code) => {
+    const res = await axiosClient.post("/auth/verify-email", { email, code });
+    const { token, user: verifiedUser } = res.data.data;
     localStorage.setItem("ptit_exam_token", token);
-    setUser(newUser);
-    return newUser;
+    setUser(verifiedUser);
+    return verifiedUser;
+  };
+
+  const resendCode = async (email) => {
+    const res = await axiosClient.post("/auth/resend-code", { email });
+    return res.data;
   };
 
   const logout = () => {
@@ -59,6 +72,8 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(user),
         login,
         register,
+        verifyEmail,
+        resendCode,
         logout,
       }}
     >

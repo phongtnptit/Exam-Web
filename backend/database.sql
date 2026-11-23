@@ -18,6 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('STUDENT', 'TEACHER') NOT NULL DEFAULT 'STUDENT',
   student_code VARCHAR(30) DEFAULT NULL,
+  email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  verification_code_hash VARCHAR(255) DEFAULT NULL,
+  verification_expires DATETIME DEFAULT NULL,
+  verification_sent_at DATETIME DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

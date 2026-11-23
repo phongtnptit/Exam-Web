@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken, requireRole } from "../middlewares/authMiddleware.js";
-import { register, login, getMe } from "../controllers/authController.js";
+import { register, login, getMe, verifyEmail, resendCode } from "../controllers/authController.js";
 import { chat } from "../controllers/chatController.js";
 import {
   getSubjects,
@@ -30,6 +30,8 @@ import {
 const router = express.Router();
 
 router.post("/auth/register", register);
+router.post("/auth/verify-email", verifyEmail);
+router.post("/auth/resend-code", resendCode);
 router.post("/auth/login", login);
 router.get("/auth/me", verifyToken, getMe);
 
