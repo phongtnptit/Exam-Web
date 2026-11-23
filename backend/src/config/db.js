@@ -39,9 +39,36 @@ export async function initializeDatabase() {
       password_hash VARCHAR(255) NOT NULL,
       role ENUM('STUDENT', 'TEACHER') NOT NULL DEFAULT 'STUDENT',
       student_code VARCHAR(30) DEFAULT NULL,
+      email_verified TINYINT(1) NOT NULL DEFAULT 0,
+      verification_code_hash VARCHAR(255) DEFAULT NULL,
+      verification_expires DATETIME DEFAULT NULL,
+      verification_sent_at DATETIME DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB;
   `);
+
+  // Migration cho DB da ton tai tu truoc: them cac cot xac minh email neu
+  // chua co (MySQL khong ho tro ADD COLUMN IF NOT EXISTS nen kiem tra
+  // INFORMATION_SCHEMA truoc). Tai khoan cu chua tung nhan ma xac minh
+  // (verification_code_hash IS NULL) duoc coi la da xac minh.
+  const verifyColumns = [
+    ["email_verified", "TINYINT(1) NOT NULL DEFAULT 0"],
+    ["verification_code_hash", "VARCHAR(255) DEFAULT NULL"],
+    ["verification_expires", "DATETIME DEFAULT NULL"],
+    ["verification_sent_at", "DATETIME DEFAULT NULL"],
+  ];
+  for (const [column, definition] of verifyColumns) {
+    const [columnRows] = await pool.query(
+      "SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = ?",
+      [dbName, column]
+    );
+    if (columnRows[0].cnt === 0) {
+      await pool.query(`ALTER TABLE users ADD COLUMN ${column} ${definition}`);
+    }
+  }
+  await pool.query(
+    "UPDATE users SET email_verified = 1 WHERE email_verified = 0 AND verification_code_hash IS NULL"
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subjects (
@@ -134,22 +161,22 @@ export async function initializeDatabase() {
     const studentPass = await bcrypt.hash("123456", 10);
 
     const [teacherRes] = await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, student_code)
-       VALUES (?, ?, ?, 'TEACHER', 'GV001')`,
+      `INSERT INTO users (full_name, email, password_hash, role, student_code, email_verified)
+       VALUES (?, ?, ?, 'TEACHER', 'GV001', 1)`,
       ["TS. Nguyễn Văn Giảng", "teacher@ptit.edu.vn", teacherPass]
     );
     const teacherId = teacherRes.insertId;
 
     const [studentRes] = await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, student_code)
-       VALUES (?, ?, ?, 'STUDENT', 'B22DCCN001')`,
+      `INSERT INTO users (full_name, email, password_hash, role, student_code, email_verified)
+       VALUES (?, ?, ?, 'STUDENT', 'B22DCCN001', 1)`,
       ["Trần Minh Quân", "student@ptit.edu.vn", studentPass]
     );
     const studentId = studentRes.insertId;
 
     await pool.query(
-      `INSERT INTO users (full_name, email, password_hash, role, student_code)
-       VALUES (?, ?, ?, 'STUDENT', 'B22DCCN102')`,
+      `INSERT INTO users (full_name, email, password_hash, role, student_code, email_verified)
+       VALUES (?, ?, ?, 'STUDENT', 'B22DCCN102', 1)`,
       ["Lê Thị Hương Giang", "giang.lth@ptit.edu.vn", studentPass]
     );
 

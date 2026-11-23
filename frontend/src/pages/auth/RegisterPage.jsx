@@ -34,8 +34,8 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      await register(form);
-      navigate("/");
+      const result = await register(form);
+      navigate("/verify-email", { state: { email: result?.email || form.email } });
     } catch (err) {
       setError(
         err.response?.data?.message ||

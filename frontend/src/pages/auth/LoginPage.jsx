@@ -23,6 +23,12 @@ export default function LoginPage() {
       await login(email, password);
       navigate("/");
     } catch (err) {
+      if (err.response?.data?.code === "EMAIL_NOT_VERIFIED") {
+        navigate("/verify-email", {
+          state: { email: err.response.data.data?.email || email },
+        });
+        return;
+      }
       setError(
         err.response?.data?.message ||
           "Đăng nhập thất bại. Vui lòng kiểm tra lại email hoặc mật khẩu."
